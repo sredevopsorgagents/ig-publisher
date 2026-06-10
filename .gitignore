@@ -1,0 +1,10 @@
+.git
+.github
+.env
+*.md
+__pycache__
+*.pyc
+.venv
+*.json
+*.mp4
+*.jpeg
