@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ig-config
+  namespace: marketing-automation
+data:
+  # Replace this value with your GCS bucket name
+  gcs_bucket_name: your-gcs-bucket

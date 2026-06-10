@@ -1,16 +1,22 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: ig-publisher-job
+  name: ig-publisher
   namespace: marketing-automation
   labels:
     app: ig-publisher
     tier: backend
 spec:
-  ttlSecondsAfterFinished: 86400 # Clean up pod after 24h
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ig-publisher
   template:
+    metadata:
+      labels:
+        app: ig-publisher
+        tier: backend
     spec:
-      restartPolicy: OnFailure
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -20,7 +26,8 @@ spec:
       - name: publisher
         image: registry.sredevops.org/ig-publisher:1.0.0 # Your internal registry
         imagePullPolicy: IfNotPresent
-        args: ["/media/campaign_video.mp4", "--caption", "K8s automated post! ☸️"]
+        ports:
+        - containerPort: 8000
         env:
         - name: IG_USER_ID
           valueFrom:
@@ -32,7 +39,17 @@ spec:
             secretKeyRef:
               name: ig-credentials
               key: access_token
+        - name: GCP_SA_KEY_PATH
+          value: "/secrets/gcp-sa-key.json"
+        - name: GCS_BUCKET_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: ig-config
+              key: gcs_bucket_name
         volumeMounts:
+        - name: gcp-sa-key
+          mountPath: /secrets
+          readOnly: true
         - name: media-storage
           mountPath: /media
           readOnly: true
@@ -49,6 +66,9 @@ spec:
             cpu: "500m"
             memory: "256Mi"
       volumes:
+      - name: gcp-sa-key
+        secret:
+          secretName: gcp-sa-key
       - name: media-storage
         persistentVolumeClaim:
           claimName: media-assets-pvc # Or use a CSI driver for GCP Filestore/GCS FUSE
