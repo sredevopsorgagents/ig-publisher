@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IG Publisher</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; color: #333; }
+        .card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        input[type="file"], textarea { width: 100%; padding: 0.5rem; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background: #E1306C; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 4px; cursor: pointer; font-size: 1rem; width: 100%; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .status { margin-top: 1rem; padding: 1rem; border-radius: 4px; display: none; font-family: monospace; white-space: pre-wrap; }
+        .status.info { background: #e2e3e5; display: block; }
+        .status.success { background: #d4edda; color: #155724; display: block; }
+        .status.error { background: #f8d7da; color: #721c24; display: block; }
+    </style>
+</head>
+<body>
+    <h1>Instagram Publisher</h1>
+    <div class="card">
+        <form id="publishForm">
+            <label for="media">Media File (Image/Video)</label>
+            <input type="file" id="media" name="file" accept="image/*,video/*" required>
+            
+            <label for="caption">Caption</label>
+            <textarea id="caption" name="caption" rows="4" placeholder="Write your caption here..."></textarea>
+            
+            <button type="submit" id="submitBtn">Publish to Instagram</button>
+        </form>
+    </div>
+
+    <div id="statusBox" class="status"></div>
+
+    <script>
+        const form = document.getElementById('publishForm');
+        const statusBox = document.getElementById('statusBox');
+        const submitBtn = document.getElementById('submitBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            submitBtn.disabled = true;
+            statusBox.className = 'status info';
+            statusBox.innerText = 'Uploading file and starting process...';
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('/publish', { method: 'POST', body: formData });
+                if (!response.ok) throw new Error('Upload failed');
+                const data = await response.json();
+                pollStatus(data.job_id);
+            } catch (err) {
+                statusBox.className = 'status error';
+                statusBox.innerText = 'Error: ' + err.message;
+                submitBtn.disabled = false;
+            }
+        });
+
+        async function pollStatus(jobId) {
+            const interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/status/${jobId}`);
+                    const data = await res.json();
+                    statusBox.innerText = data.log;
+
+                    if (data.status === 'SUCCESS') {
+                        statusBox.className = 'status success';
+                        clearInterval(interval);
+                        submitBtn.disabled = false;
+                        form.reset();
+                    } else if (data.status === 'FAILED') {
+                        statusBox.className = 'status error';
+                        clearInterval(interval);
+                        submitBtn.disabled = false;
+                    }
+                } catch (err) {
+                    clearInterval(interval);
+                    statusBox.className = 'status error';
+                    statusBox.innerText = 'Lost connection to server.';
+                    submitBtn.disabled = false;
+                }
+            }, 3000); // Poll every 3 seconds
+        }
+    </script>
+</body>
+</html>

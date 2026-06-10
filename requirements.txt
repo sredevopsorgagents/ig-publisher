@@ -1,2 +1,5 @@
-requests
-google-cloud-storage
+fastapi==0.111.0
+uvicorn==0.30.1
+httpx==0.27.0
+google-cloud-storage==2.16.0
+python-multipart==0.0.9
