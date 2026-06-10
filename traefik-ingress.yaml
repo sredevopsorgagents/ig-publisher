@@ -1,0 +1,64 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: basic-auth
+  namespace: marketing-automation
+spec:
+  basicAuth:
+    secret: basic-auth-secret
+    removeHeader: true
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: ig-publisher-ingress
+  namespace: marketing-automation
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`ig-publisher.example.com`)
+      kind: Rule
+      services:
+        - name: ig-publisher-service
+          port: 8000
+      middlewares:
+        - name: basic-auth
+  tls:
+    secretName: ig-publisher-tls-secret
+
+---
+# Secret containing basic auth credentials (username: admin, password: changeme)
+# Generate with: htpasswd -nb admin changeme | base64
+# Or use: echo $(htpasswd -nb admin changeme) | base64
+apiVersion: v1
+kind: Secret
+metadata:
+  name: basic-auth-secret
+  namespace: marketing-automation
+type: Opaque
+data:
+  # Default credentials: admin / changeme
+  # Replace with your own generated hash using: htpasswd -nb <username> <password> | base64
+  users: YWRtaW46JGFwcjEkdGVzdCR0ZXN0aGFzaA==
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ig-publisher-service
+  namespace: marketing-automation
+  labels:
+    app: ig-publisher
+spec:
+  selector:
+    app: ig-publisher
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+  type: ClusterIP
