@@ -1,1 +1,9 @@
-Nothing needs to be added to .gitignore for this change list. The only file added is `traefik-ingress.yaml`, which is a configuration file and should not be ignored.
+.git
+.env
+*.md
+__pycache__
+*.pyc
+.venv
+*.json
+*.mp4
+*.jpeg
