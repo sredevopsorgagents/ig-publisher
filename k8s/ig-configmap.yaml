@@ -5,4 +5,4 @@ metadata:
   namespace: marketing-automation
 data:
   # Replace this value with your GCS bucket name
-  gcs_bucket_name: your-gcs-bucket
+  gcs_bucket_name: your-gcs-bucket-name
