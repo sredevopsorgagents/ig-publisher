@@ -145,11 +145,115 @@ def publish_media(ig_user_id: str, access_token: str, container_id: str) -> str:
     return media_id
 
 
+def get_profile_info(ig_user_id: str, access_token: str) -> dict:
+    """Retrieves Instagram Business account profile information."""
+    url = f"{GRAPH_API_BASE}/{ig_user_id}"
+    params = {
+        "fields": "id,username,name,biography,followers_count,follows_count,media_count,website,profile_picture_url"
+    }
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    print(f"[*] Fetching profile info for user {ig_user_id}...")
+    response = requests.get(url, params=params, headers=headers)
+    response.raise_for_status()
+
+    profile_data = response.json()
+    print(f"[+] Profile retrieved: @{profile_data.get('username')}")
+    return profile_data
+
+
+def get_content_publishing_limit(ig_user_id: str, access_token: str) -> dict:
+    """Checks the content publishing limit status for the Instagram account."""
+    url = f"{GRAPH_API_BASE}/{ig_user_id}/content_publishing_limit"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    print(f"[*] Checking content publishing limits for user {ig_user_id}...")
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
+    limit_data = response.json()
+    config = limit_data.get("config", {})
+    quota_usage = limit_data.get("quota_usage", 0)
+    quota_total = config.get("daily_quota", 0)
+    quota_remaining = quota_total - quota_usage if quota_total else None
+
+    result = {
+        "config": config,
+        "quota_usage": quota_usage,
+        "quota_total": quota_total,
+        "quota_remaining": quota_remaining,
+    }
+
+    print(f"[+] Publishing limit: {quota_usage}/{quota_total} used ({quota_remaining} remaining)")
+    return result
+
+
+def create_story_container(
+    ig_user_id: str,
+    access_token: str,
+    media_url: str,
+    mime_type: str,
+) -> str:
+    """Creates a media container for an Instagram Story."""
+    url = f"{GRAPH_API_BASE}/{ig_user_id}/media"
+
+    payload = {}
+
+    if mime_type.startswith("image/"):
+        payload["image_url"] = media_url
+        payload["media_type"] = "STORY"
+    elif mime_type.startswith("video/"):
+        payload["video_url"] = media_url
+        payload["media_type"] = "STORY_VIDEO"
+    else:
+        raise ValueError(
+            f"Unsupported media type: {mime_type}. Use JPEG/PNG or MP4/MOV."
+        )
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
+    print(f"[*] Creating story container...")
+    response = requests.post(url, json=payload, headers=headers)
+    response.raise_for_status()
+
+    container_id = response.json().get("id")
+    print(f"[+] Story container created with ID: {container_id}")
+    return container_id
+
+
+def publish_story(ig_user_id: str, access_token: str, container_id: str) -> str:
+    """Publishes the story container to the Instagram account."""
+    url = f"{GRAPH_API_BASE}/{ig_user_id}/media_publish"
+    payload = {"creation_id": container_id}
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
+    print(f"[*] Publishing story container {container_id}...")
+    response = requests.post(url, json=payload, headers=headers)
+    response.raise_for_status()
+
+    media_id = response.json().get("id")
+    print(f"[+] Successfully published story! Media ID: {media_id}")
+    return media_id
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Publish content to Instagram via GCS."
     )
-    parser.add_argument("file_path", help="Path to the local image or video file.")
+    
+    # Action mode selection
+    mode_group = parser.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument("--profile", action="store_true", help="Fetch profile information")
+    mode_group.add_argument("--check-limits", action="store_true", help="Check content publishing limits")
+    mode_group.add_argument("--story", action="store_true", help="Publish as an Instagram Story")
+    mode_group.add_argument("file_path", nargs="?", help="Path to the local image or video file (for regular posts)")
+    
     parser.add_argument(
         "--caption", default="", help="Optional text caption for the post."
     )
@@ -164,27 +268,87 @@ def main():
             "Error: Please set IG_USER_ID and IG_ACCESS_TOKEN environment variables."
         )
 
-    if not os.path.exists(args.file_path):
-        sys.exit(f"Error: File not found at {args.file_path}")
-
-    mime_type, _ = mimetypes.guess_type(args.file_path)
-    if not mime_type:
-        sys.exit("Error: Could not determine the MIME type of the file.")
-
     try:
-        # 1. Upload to GCS and get Signed URL
-        public_url = get_signed_url(args.file_path)
+        # Profile info mode
+        if args.profile:
+            profile = get_profile_info(ig_user_id, access_token)
+            print("\n--- Profile Information ---")
+            for key, value in profile.items():
+                print(f"{key}: {value}")
+            return
 
-        # 2. Create Container
-        container_id = create_media_container(
-            ig_user_id, access_token, public_url, mime_type, args.caption
-        )
+        # Content publishing limit check mode
+        if args.check_limits:
+            limits = get_content_publishing_limit(ig_user_id, access_token)
+            print("\n--- Publishing Limits ---")
+            print(f"Daily Quota: {limits['quota_total']}")
+            print(f"Quota Used: {limits['quota_usage']}")
+            print(f"Quota Remaining: {limits['quota_remaining']}")
+            return
 
-        # 3. Wait for Processing
-        wait_for_container_readiness(container_id, access_token)
+        # Story publishing mode
+        if args.story:
+            if not args.file_path:
+                sys.exit("Error: --story mode requires a file path.")
+            if not os.path.exists(args.file_path):
+                sys.exit(f"Error: File not found at {args.file_path}")
 
-        # 4. Publish
-        publish_media(ig_user_id, access_token, container_id)
+            mime_type, _ = mimetypes.guess_type(args.file_path)
+            if not mime_type:
+                sys.exit("Error: Could not determine the MIME type of the file.")
+
+            # Check limits before publishing story
+            print("[*] Checking publishing limits before story upload...")
+            limits = get_content_publishing_limit(ig_user_id, access_token)
+            if limits['quota_remaining'] is not None and limits['quota_remaining'] <= 0:
+                sys.exit("Error: Daily publishing quota exceeded. Cannot publish story.")
+
+            # 1. Upload to GCS and get Signed URL
+            public_url = get_signed_url(args.file_path)
+
+            # 2. Create Story Container
+            container_id = create_story_container(
+                ig_user_id, access_token, public_url, mime_type
+            )
+
+            # 3. Wait for Processing
+            wait_for_container_readiness(container_id, access_token)
+
+            # 4. Publish Story
+            publish_story(ig_user_id, access_token, container_id)
+            return
+
+        # Regular post mode (default when file_path is provided)
+        if args.file_path:
+            if not os.path.exists(args.file_path):
+                sys.exit(f"Error: File not found at {args.file_path}")
+
+            mime_type, _ = mimetypes.guess_type(args.file_path)
+            if not mime_type:
+                sys.exit("Error: Could not determine the MIME type of the file.")
+
+            # Check limits before publishing
+            print("[*] Checking publishing limits before upload...")
+            limits = get_content_publishing_limit(ig_user_id, access_token)
+            if limits['quota_remaining'] is not None and limits['quota_remaining'] <= 0:
+                sys.exit("Error: Daily publishing quota exceeded. Cannot publish post.")
+
+            # 1. Upload to GCS and get Signed URL
+            public_url = get_signed_url(args.file_path)
+
+            # 2. Create Container
+            container_id = create_media_container(
+                ig_user_id, access_token, public_url, mime_type, args.caption
+            )
+
+            # 3. Wait for Processing
+            wait_for_container_readiness(container_id, access_token)
+
+            # 4. Publish
+            publish_media(ig_user_id, access_token, container_id)
+        else:
+            parser.print_help()
+            sys.exit(1)
 
     except requests.exceptions.HTTPError as e:
         print(f"[-] API Error: {e.response.text}")
