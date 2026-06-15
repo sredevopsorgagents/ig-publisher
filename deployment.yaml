@@ -24,7 +24,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: publisher
-        image: registry.sredevops.org/ig-publisher:1.0.0 # Your internal registry
+        image: ghcr.io/sredevopsorgagents/ig-publisher:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
@@ -51,8 +51,8 @@ spec:
           mountPath: /secrets
           readOnly: true
         - name: media-storage
-          mountPath: /media
-          readOnly: true
+          mountPath: /tmp/ig-uploads
+          readOnly: false
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true # Highly recommended for immutable infrastructure
@@ -60,7 +60,7 @@ spec:
             drop: ["ALL"]
         resources:
           requests:
-            cpu: "100m"
+            cpu: "10m"
             memory: "128Mi"
           limits:
             cpu: "500m"
@@ -70,5 +70,5 @@ spec:
         secret:
           secretName: gcp-sa-key
       - name: media-storage
-        persistentVolumeClaim:
-          claimName: media-assets-pvc # Or use a CSI driver for GCP Filestore/GCS FUSE
+        emptyDir:
+          sizeLimit: 1Gi

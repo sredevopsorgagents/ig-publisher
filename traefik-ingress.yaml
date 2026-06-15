@@ -14,8 +14,6 @@ kind: IngressRoute
 metadata:
   name: ig-publisher-ingress
   namespace: marketing-automation
-  annotations:
-    kubernetes.io/ingress.class: traefik
 spec:
   entryPoints:
     - websecure
@@ -26,6 +24,7 @@ spec:
         - name: ig-publisher-service
           port: 8000
       middlewares:
+        - name: ig-publisher-rate-limit
         - name: basic-auth
   tls:
     secretName: ig-publisher-tls-secret
@@ -43,7 +42,8 @@ type: Opaque
 data:
   # Default credentials: admin / changeme
   # Replace with your own generated hash using: htpasswd -nb <username> <password> | base64
-  users: YWRtaW46JGFwcjEkdGVzdCR0ZXN0aGFzaA==
+  users: CHANGEME
+
 
 ---
 apiVersion: v1
@@ -62,3 +62,15 @@ spec:
       targetPort: 8000
       protocol: TCP
   type: ClusterIP
+---
+# Add this to your Middleware definitions
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ig-publisher-rate-limit
+  namespace: marketing-automation
+spec:
+  rateLimit:
+    average: 5      # 5 requests per second
+    burst: 10       # Allow short bursts up to 10
+    period: 30m
