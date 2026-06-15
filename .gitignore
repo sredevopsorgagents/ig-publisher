@@ -1,1 +1,9 @@
-Nothing should be ignored based on the provided file changes, as only source code files (.py) were modified without any build artifacts, dependencies, or temporary files.
+.git
+.env
+*.md
+__pycache__
+*.pyc
+.venv
+*.json
+*.mp4
+*.jpeg
