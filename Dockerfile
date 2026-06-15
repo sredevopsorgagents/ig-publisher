@@ -1,7 +1,7 @@
 # Build a virtualenv using the appropriate Debian release
 # * Install gcc and libc6-dev to compile C Python modules
 # * In the virtualenv: Update pip setuputils and wheel to support building new packages
-FROM python:3.13-slim-trixie AS build
+FROM python:3.14-slim-trixie AS build
 RUN apt-get update && \
     apt-get install --no-install-suggests --no-install-recommends --yes gcc libc6-dev && \
     # Symlink the distroless path for python: /usr/bin/python to the build 
