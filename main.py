@@ -343,9 +343,9 @@ async def handle_webhook(request: Request):
         return {"status": "success"}
         
     except Exception as e:
-        # Log error but return success to prevent Meta from retrying
+        # Log error but return a generic message to avoid exposing internals
         print(f"Webhook processing error: {str(e)}")
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": "An internal error occurred"}
 
 
 async def process_messaging_webhook(event: dict):
