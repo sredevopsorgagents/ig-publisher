@@ -1,9 +1,1 @@
-.git
-.env
-*.md
-__pycache__
-*.pyc
-.venv
-*.json
-*.mp4
-*.jpeg
+Nothing needs to be added to the .gitignore file based on the provided changes. The modification of 'main.py' does not require any new ignore rules.
