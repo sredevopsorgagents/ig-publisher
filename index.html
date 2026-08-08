@@ -3,14 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Instagram Publisher - Upload and publish media to Instagram">
     <title>IG Publisher</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: system-ui, -apple-system, sans-serif;
             max-width: 600px;
             margin: 2rem auto;
             padding: 0 1rem;
             color: #333;
+            line-height: 1.6;
+        }
+
+        h1, h2 {
+            color: #E1306C;
         }
 
         .card {
@@ -30,28 +40,41 @@
         input[type="file"],
         textarea {
             width: 100%;
-            padding: 0.5rem;
+            padding: 0.75rem;
             margin-bottom: 1rem;
             border: 1px solid #ccc;
             border-radius: 4px;
             box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
         }
 
         button {
             background: #E1306C;
             color: white;
             border: none;
-            padding: 0.75rem 1.5rem;
+            padding: 0.875rem 1.5rem;
             border-radius: 4px;
             cursor: pointer;
             font-size: 1rem;
+            font-weight: 600;
             width: 100%;
             margin-bottom: 0.5rem;
+            transition: background-color 0.2s, opacity 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #c42a5c;
         }
 
         button:disabled {
             background: #ccc;
             cursor: not-allowed;
+            opacity: 0.7;
         }
 
         .status {
@@ -59,25 +82,31 @@
             padding: 1rem;
             border-radius: 4px;
             display: none;
-            font-family: monospace;
+            font-family: 'Courier New', monospace;
             white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.875rem;
         }
 
         .status.info {
             background: #e2e3e5;
+            color: #383d41;
             display: block;
+            border-left: 4px solid #17a2b8;
         }
 
         .status.success {
             background: #d4edda;
             color: #155724;
             display: block;
+            border-left: 4px solid #28a745;
         }
 
         .status.error {
             background: #f8d7da;
             color: #721c24;
             display: block;
+            border-left: 4px solid #dc3545;
         }
 
         .drafts-section {
@@ -93,114 +122,248 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 1rem;
         }
 
         .draft-info {
             flex: 1;
+            min-width: 0;
+        }
+
+        .draft-info strong {
+            display: block;
+            margin-bottom: 0.25rem;
+            word-break: break-word;
+        }
+
+        .draft-info small {
+            color: #666;
+            display: block;
         }
 
         .draft-actions {
             display: flex;
             gap: 0.5rem;
+            flex-shrink: 0;
         }
 
         .btn-small {
             padding: 0.5rem 1rem;
             font-size: 0.875rem;
             width: auto;
+            white-space: nowrap;
         }
 
         .btn-success {
             background: #28a745;
         }
 
+        .btn-success:hover:not(:disabled) {
+            background: #218838;
+        }
+
         .btn-danger {
             background: #dc3545;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c82333;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 480px) {
+            body {
+                margin: 1rem auto;
+                padding: 0 0.75rem;
+            }
+
+            .draft-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .draft-actions {
+                width: 100%;
+                margin-top: 0.75rem;
+            }
+
+            .draft-actions button {
+                flex: 1;
+            }
+        }
+
+        /* Accessibility improvements */
+        button:focus,
+        input:focus,
+        textarea:focus {
+            outline: 2px solid #E1306C;
+            outline-offset: 2px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
     </style>
 </head>
 <body>
     <h1>Instagram Publisher</h1>
-    <div class="card">
-        <form id="publishForm">
+    
+    <div class="card" role="region" aria-labelledby="upload-form-title">
+        <h2 id="upload-form-title" class="sr-only">Upload Media</h2>
+        <form id="publishForm" enctype="multipart/form-data">
             <label for="media">Media File (Image/Video)</label>
-            <input type="file" id="media" name="file" accept="image/*,video/*" required>
+            <input type="file" id="media" name="file" accept="image/*,video/*" required aria-describedby="file-help">
+            <span id="file-help" class="sr-only">Select an image or video file to upload</span>
+            
             <label for="caption">Caption</label>
-            <textarea id="caption" name="caption" rows="4" placeholder="Write your caption here..."></textarea>
+            <textarea id="caption" name="caption" rows="4" placeholder="Write your caption here..." aria-describedby="caption-help"></textarea>
+            <span id="caption-help" class="sr-only">Optional caption for your Instagram post</span>
+            
             <label>
                 <input type="checkbox" id="isDraft" name="is_draft"> Save as Draft (don't publish yet)
             </label>
-            <button type="submit" id="submitBtn">Publish to Instagram</button>
+            
+            <button type="submit" id="submitBtn" aria-live="polite">
+                <span id="btnText">Publish to Instagram</span>
+            </button>
         </form>
     </div>
 
-    <div id="statusBox" class="status"></div>
-    <div class="drafts-section card">
-        <h2>Drafts</h2>
-        <div id="draftsList"></div>
+    <div id="statusBox" class="status" role="alert" aria-live="polite"></div>
+    
+    <div class="drafts-section card" role="region" aria-labelledby="drafts-title">
+        <h2 id="drafts-title">Drafts</h2>
+        <div id="draftsList" aria-live="polite"></div>
     </div>
+    
     <script>
         const form = document.getElementById('publishForm');
         const statusBox = document.getElementById('statusBox');
         const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
         const draftsList = document.getElementById('draftsList');
+        const mediaInput = document.getElementById('media');
 
         // Load drafts on page load
         loadDrafts();
 
+        // Validate file size client-side (optional UX improvement)
+        mediaInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.size > 50 * 1024 * 1024) {
+                showStatus('File is too large. Maximum size is 50MB.', 'error');
+                mediaInput.value = '';
+            }
+        });
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             submitBtn.disabled = true;
-            statusBox.className = 'status info';
-            statusBox.innerText = 'Uploading file and starting process...';
+            btnText.innerHTML = '<span class="loading-spinner"></span>Uploading...';
+            showStatus('Uploading file and starting process...', 'info');
 
             const formData = new FormData(form);
             const isDraft = document.getElementById('isDraft').checked;
             formData.set('is_draft', isDraft);
 
             try {
-                const response = await fetch('/publish', { method: 'POST', body: formData });
-                if (!response.ok) throw new Error('Upload failed');
+                const response = await fetch('/publish', { 
+                    method: 'POST', 
+                    body: formData 
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ detail: 'Upload failed' }));
+                    throw new Error(errorData.detail || 'Upload failed');
+                }
+                
                 const data = await response.json();
 
                 if (isDraft) {
-                    statusBox.className = 'status success';
-                    statusBox.innerText = 'Draft saved successfully!';
+                    showStatus('Draft saved successfully!', 'success');
                     loadDrafts();
                     form.reset();
                     submitBtn.disabled = false;
+                    btnText.textContent = 'Publish to Instagram';
                 } else {
                     pollStatus(data.job_id);
                 }
             } catch (err) {
-                statusBox.className = 'status error';
-                statusBox.innerText = 'Error: ' + err.message;
+                showStatus('Error: ' + err.message, 'error');
                 submitBtn.disabled = false;
+                btnText.textContent = 'Publish to Instagram';
             }
         });
 
+        function showStatus(message, type) {
+            statusBox.className = `status ${type}`;
+            statusBox.innerText = message;
+        }
+
         async function pollStatus(jobId) {
+            let attempts = 0;
+            const maxAttempts = 100; // Prevent infinite polling
+            
             const interval = setInterval(async () => {
+                attempts++;
+                if (attempts > maxAttempts) {
+                    clearInterval(interval);
+                    showStatus('Polling timeout. Please check back later.', 'error');
+                    submitBtn.disabled = false;
+                    btnText.textContent = 'Publish to Instagram';
+                    return;
+                }
+                
                 try {
                     const res = await fetch(`/jobs/${jobId}`);
+                    
+                    if (!res.ok) {
+                        throw new Error('Lost connection to server');
+                    }
+                    
                     const data = await res.json();
-                    statusBox.innerText = data.log;
+                    showStatus(data.log, 'info');
 
                     if (data.status === 'SUCCESS') {
-                        statusBox.className = 'status success';
+                        showStatus(data.log, 'success');
                         clearInterval(interval);
                         submitBtn.disabled = false;
+                        btnText.textContent = 'Publish to Instagram';
                         form.reset();
                     } else if (data.status === 'FAILED') {
-                        statusBox.className = 'status error';
+                        showStatus(data.log, 'error');
                         clearInterval(interval);
                         submitBtn.disabled = false;
+                        btnText.textContent = 'Publish to Instagram';
                     }
                 } catch (err) {
                     clearInterval(interval);
-                    statusBox.className = 'status error';
-                    statusBox.innerText = 'Lost connection to server.';
+                    showStatus('Lost connection to server. Please refresh the page.', 'error');
                     submitBtn.disabled = false;
+                    btnText.textContent = 'Publish to Instagram';
                 }
             }, 3000);
         }
@@ -208,10 +371,12 @@
         async function loadDrafts() {
             try {
                 const res = await fetch('/drafts');
+                if (!res.ok) throw new Error('Failed to load drafts');
                 const data = await res.json();
                 renderDrafts(data.drafts || {});
             } catch (err) {
                 console.error('Failed to load drafts:', err);
+                draftsList.innerHTML = '<p style="color: #dc3545;">Failed to load drafts. Please refresh.</p>';
             }
         }
 
@@ -227,34 +392,57 @@
             draftArray.forEach(([containerId, draft]) => {
                 const div = document.createElement('div');
                 div.className = 'draft-item';
+                
+                const statusColor = {
+                    'draft': '#6c757d',
+                    'publishing': '#17a2b8',
+                    'published': '#28a745',
+                    'publish_failed': '#dc3545'
+                }[draft.status] || '#6c757d';
+                
                 div.innerHTML = `
                     <div class="draft-info">
-                        <strong>${draft.caption || '(No caption)'}</strong><br>
-                        <small>Status: ${draft.status} | Created: ${new Date(draft.created_at).toLocaleString()}</small>
+                        <strong>${escapeHtml(draft.caption || '(No caption)')}</strong><br>
+                        <small>
+                            Status: <span style="color: ${statusColor}; font-weight: 600;">${draft.status}</span> | 
+                            Created: ${new Date(draft.created_at).toLocaleString()}
+                        </small>
                     </div>
                     <div class="draft-actions">
-                        ${draft.status === 'draft' ? `<button class="btn-small btn-success" onclick="publishDraft('${containerId}')">Publish</button>` : ''}
-                        <button class="btn-small btn-danger" onclick="deleteDraft('${containerId}')">Delete</button>
+                        ${draft.status === 'draft' ? `<button class="btn-small btn-success" onclick="publishDraft('${containerId}')" aria-label="Publish draft">Publish</button>` : ''}
+                        <button class="btn-small btn-danger" onclick="deleteDraft('${containerId}')" aria-label="Delete draft">Delete</button>
                     </div>
                 `;
                 draftsList.appendChild(div);
             });
         }
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         async function publishDraft(containerId) {
             if (!confirm('Are you sure you want to publish this draft?')) return;
 
+            submitBtn.disabled = true;
+            btnText.innerHTML = '<span class="loading-spinner"></span>Publishing...';
+
             try {
                 const res = await fetch(`/drafts/${containerId}/publish`, { method: 'POST' });
-                if (!res.ok) throw new Error('Failed to publish draft');
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({ detail: 'Failed to publish draft' }));
+                    throw new Error(errorData.detail || 'Failed to publish draft');
+                }
                 const data = await res.json();
-                statusBox.className = 'status info';
-                statusBox.innerText = 'Publishing draft...';
+                showStatus('Publishing draft...', 'info');
                 pollStatus(data.job_id);
                 loadDrafts();
             } catch (err) {
-                statusBox.className = 'status error';
-                statusBox.innerText = 'Error: ' + err.message;
+                showStatus('Error: ' + err.message, 'error');
+                submitBtn.disabled = false;
+                btnText.textContent = 'Publish to Instagram';
             }
         }
 
@@ -265,13 +453,14 @@
                 const res = await fetch(`/drafts/${containerId}`, { method: 'DELETE' });
                 if (!res.ok) throw new Error('Failed to delete draft');
                 loadDrafts();
-                statusBox.className = 'status success';
-                statusBox.innerText = 'Draft deleted successfully!';
+                showStatus('Draft deleted successfully!', 'success');
             } catch (err) {
-                statusBox.className = 'status error';
-                statusBox.innerText = 'Error: ' + err.message;
+                showStatus('Error: ' + err.message, 'error');
             }
         }
+
+        // Auto-refresh drafts every 30 seconds
+        setInterval(loadDrafts, 30000);
     </script>
 </body>
 </html>
