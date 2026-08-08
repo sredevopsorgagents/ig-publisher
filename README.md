@@ -1,6 +1,4 @@
-# IG Publisher - Traefik v3 Ingress Configuration
-
-This repository contains the Kubernetes configuration for deploying an Instagram Publisher service with Traefik v3 ingress and authentication middleware.
+# IG Publisher: Simple and basic python application leveraging Instagram API to publish content
 
 ## Overview
 
@@ -24,10 +22,12 @@ Before deploying, ensure you have:
 ## Files Included
 
 ```
+├── main.py                 # FastAPI application
+├── Dockerfile              # Container image definition
+├── requirements.txt        # Pip modules requirements
 ├── deployment.yaml         # Deployment for kubernetes
 ├── traefik-ingress.yaml    # Traefik IngressRoute, Middleware, Service, and Secret
-├── Dockerfile              # Container image definition
-├── main.py                 # FastAPI application
+├── k8s/*                   # Optional manifests
 └── README.md               # This file
 ```
 
