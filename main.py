@@ -114,6 +114,7 @@ async def process_ig_publish(job_id: str, file_path: str, caption: str, mime_typ
             payload = {"caption": caption}
             if mime_type.startswith('image/'):
                 payload["image_url"] = public_url
+                payload["media_type"] = "IMAGE"
             elif mime_type.startswith('video/'):
                 payload["media_type"] = "REELS"
                 payload["video_url"] = public_url
