@@ -1,10 +1,67 @@
+# Version control
 .git
 .github
+
+# Environment and secrets
 .env
+.env.local
+.env.*.local
+
+# Documentation (not needed in container)
 *.md
+README.md
+
+# Python cache and build artifacts
 __pycache__
 *.pyc
+*.pyo
+*.so
+.eggs
+*.egg-info
+build
+dist
+
+# Virtual environments
 .venv
-*.json
+venv
+env
+ENV
+
+# IDE files
+.idea
+.vscode
+*.swp
+*.swo
+
+# Testing artifacts
+.pytest_cache
+.coverage
+htmlcov
+.tox
+
+# Logs
+*.log
+logs
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large media files (should be uploaded at runtime, not baked into image)
 *.mp4
 *.jpeg
+*.jpg
+*.png
+*.gif
+
+# JSON files (except those needed at runtime)
+*.json
+!app-settings.json
+
+# Kubernetes manifests (deployed separately)
+k8s/
+deployment.yaml
+traefik-ingress.yaml
+
+# Docker Compose files
+docker-compose*.yml
